@@ -2,7 +2,7 @@
 <html lang="en">
 <script>
 
-var botDir = "..\\..\\freebitcoin-bot\\";
+var botDir = "..\\..\\";
 var botExe = "freebitco.exe"
 
 
@@ -276,7 +276,7 @@ var startStop = function(){
 		$("#startStop").text("Stop")
 		
 		var args = ["dice"];
-		if($('#testMode').checked)
+		if($('#testMode:checked').length)
 			args.push("test");
 			
 		botProcess = startProcessBotProcess(args,function(dataObject){
