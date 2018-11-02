@@ -279,6 +279,9 @@ var startStop = function(){
 		if($('#testMode:checked').length)
 			args.push("test");
 			
+		if(!confirm("starting bot: "+args.toString()))
+			return;
+			
 		botProcess = startProcessBotProcess(args,function(dataObject){
 		if(dataObject.msg) console.log(dataObject.msg);
 		
