@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+
+
+<script src="https://canvasjs.com/assets/script/canvasjs.min.js"></script>
+
+<body>
+
+<table>
+
+<tr>
+
+<td  style="white-space:nowrap;">
+<table >
+<tr>
+	<td>Wins</td>
+	<td id="botWins"></td>
+</tr>
+<tr>
+	<td>Losses</td>
+	<td id="botLooses"></td>
+</tr>
+<tr>
+	<td>Totals Amount Bet</td>
+	<td id="totalBets"></td>
+</tr>
+<tr>
+	<td>Biggest Losing Streak</td>
+	<td id="BLS"></td>
+</tr>
+<tr>
+	<td>Current Losing Streak</td>
+	<td id="CLS"></td>
+</tr>
+<tr>
+	<td>Target Balance</td>
+	<td id="tBalance"></td>
+</tr>
+<tr>
+	<td>High Balance</td>
+	<td id="hBalance"></td>
+</tr>
+<tr>
+	<td>Current Balance</td>
+	<td id="cBalance"></td>
+</tr>
+<tr>
+	<td>Low Balance</td>
+	<td id="lBalance"></td>
+</tr>
+<tr>
+	<td>Biggest Single Bet</td>
+	<td id="BB"></td>
+</tr>
+<tr>
+	<td>Current Single Bet</td>
+	<td id="B"></td>
+</tr>
+<tr>
+	<td>Total Bet</td>
+	<td id="TB"></td>
+</tr>
+<tr>
+	<td>Gain</td>
+	<td id="gain"></td>
+</tr>
+<tr>
+	<td>Target Amount</td>
+	<td id="targetAmount"></td>
+</tr>
+<tr>
+	<td>Session Time</td>
+	<td id="ST"></td>
+</tr>
+<tr>
+	<td>Progress</td>
+	<td id="ProgressT"></td>
+</tr>
+</table>
+
+</td>
+
+
+<td  style="width:100%">
+
+<div id="chartContainer" style="height: 370px; width:100%;"></div>
+
+</td>
+</tr>
+</table>
+
+<div id="progressBar" style="height:25px;width:100%;background-color:gray;"><div id="progress" style="height:25px;width:0%;background-color:green;"></div></div>
+
+<script>
+// Get the current window
+var win = nw.Window.get();
+var openProcesses = [];
+win.on('close', function() {
+  this.hide(); // Pretend to be closed already
+  console.log("We're closing...");
+  for(var i in openProcesses){
+	openProcesses[i].process.kill('SIGINT');
+	delete openProcesses[i];
+  }
+  //alert("close");
+  this.close(true); // then close it forcely
+});
+
+
+function startProcessBotProcess(args,outputAction,onExit){
+	
+	//global.__dirname= script dir
+	
+	var botDir = "C:\\Users\\bmatusiak\\Desktop\\node-bit-free\\bitcoin-bot\\";
+	var botExe = "freebitco.exe"
+	
+	var spawn = require('child_process').spawn,
+		app = spawn(botDir + botExe, args,
+				{ 	
+					cwd: botDir,
+					env: process.env
+				});
+
+	app.stdout.on('data', function (data) {
+	  //console.log('stdout: ' + data);
+	  if(outputAction){
+		var splitData = data.toString().split("\n");
+		
+		for(var i in splitData){
+			try{
+				var $data = JSON.parse(splitData[i]);
+				if(typeof $data == "object")
+					outputAction($data);
+			}catch(e){}
+		}
+	  }
+	});
+
+	app.stderr.on('data', function (data) {
+	  console.log('stderr: ' + data);
+	});
+
+	app.on('exit', function (code) {
+	  console.log('child process exited with code ' + code);
+	  if(onExit) onExit();
+	});
+	openProcesses.push({
+		id : (new Date).getTime(),
+		process : app
+	});
+}
+
+
+var dpsBALANCE_TIME = []; // dataPoints
+var dpsLOOSING = []; // dataPoints
+
+var chart = new CanvasJS.Chart("chartContainer", {
+	animationEnabled: true,
+	axisY: {
+		includeZero: false
+	}, 
+	axisX: {
+		includeZero: false,
+		labelFormatter: function(){
+		  return " ";
+		}
+	},
+	axisX2: {
+		includeZero: false,
+		labelFormatter: function(){
+		  return " ";
+		}
+	},
+	data: [{
+		type: "line",
+		color:"red",
+		axisXType: "secondary", 
+		axisYType: "secondary", 
+		dataPoints: dpsLOOSING
+	},{
+		type: "line",
+		color:"blue",
+		dataPoints: dpsBALANCE_TIME
+	}]
+});
+
+var xVal = 0;
+var yVal = 0; 
+var updateInterval = 60;
+var dataLength = 1000 * 30 ; // number of dataPoints visible at any point
+
+var updateChart = function (x , y, Y2) {
+
+	dpsBALANCE_TIME.push({
+		x: x,
+		y: y
+	});
+	
+	dpsLOOSING.push({
+		x: x,
+		y: Y2
+	});
+	
+
+	if (dpsBALANCE_TIME.length > dataLength) {
+		dpsBALANCE_TIME.shift();
+	}
+	if (dpsLOOSING.length > dataLength) {
+		dpsLOOSING.shift();
+	}
+
+	//chart.render();
+};
+
+setInterval(function(){chart.render();}, updateInterval);
+//updateChart(dataLength);
+//setInterval(function(){updateChart()}, updateInterval);
+
+
+setTimeout(function(){
+
+
+	var betlog = [];
+		
+	var winsCount = 0;
+	var lostCount = 0;
+	
+	
+	/*
+	{
+		"ID":39769,
+		"TIME":"11-01-18 12:47:02",
+		"VERSION":1.18,
+		"BTC_WITHDRAW_ADDRESS":"1GhzTCbqMJq7NjWJJF9hdmE7X7q3wgzTbC",
+		"USER":"bradley.matusiak@gmail.com",
+		"WL":"l",
+		"B":"0.00000001",
+		"C":"0.20296595",
+		"S":"0.20286712",
+		"HL":"0.20296757\/0.20264167",
+		"SL":0,
+		"BLS":1031,
+		"L":37610,
+		"W":2158,
+		"BB":"0.00000133",
+		"BDD":"0.00024971",
+		"R":7645,
+		"T":"0.00119760",
+		"M":"0.58",
+		"TB":"0.20895313",
+		"TS":"Disabled",
+		"ST":"2.76",
+		"NMW":13,
+		"NML":2146,
+		"CDD":"0.00000161",
+		"CLS":161,
+		"MCLS":260
+	}
+
+	*/
+	
+
+	startProcessBotProcess(["dice","test"],function(dataObject){
+		
+		
+				$("#botWins").text(dataObject.W)
+				$("#botLooses").text(dataObject.L)
+				$("#totalBets").text(dataObject.ID)
+							
+							
+				$("#BLS").text(dataObject.BLS)
+				$("#CLS").text(dataObject.CLS)
+				$("#cBalance").text(dataObject.C)
+				$("#TB").text(dataObject.T)//totalBets
+				$("#hBalance").text(dataObject.HL.split("/")[0] )
+				$("#lBalance").text(dataObject.HL.split("/")[1] )
+				$("#BB").text(dataObject.BB)
+				$("#tBalance").text(dataObject.TB)//targetBalance
+				$("#ST").text(dataObject.ST)
+				$("#B").text(dataObject.B)
+				
+				
+				
+				var targetBalance = parseFloat(dataObject.TB);
+				var highestBalance = parseFloat(dataObject.HL.split("/")[0]);
+				
+				var targetAmount = targetBalance - dataObject.S;
+				var gain = highestBalance - dataObject.S;
+				
+				$("#gain").text(gain.toFixed(8));
+				$("#targetAmount").text(targetAmount.toFixed(8));
+				
+				var progress = (gain / targetAmount)* 100;
+				
+				$("#ProgressT").text(progress.toFixed(2)+"%");
+				$("#progress").css("width",progress+"%");
+				
+			/*
+				
+				var targetBalance = parseFloat(bet[14].split(":")[1]);
+				var currentBalance = parseFloat(bet[5].split(":")[1].split("/")[0]);
+				var GAP = targetBalance - currentBalance;
+				
+				var startBalance = parseFloat(bet[4].split(":")[1]);
+				
+				var remainGAP = currentBalance - startBalance;
+				
+				var progress = (remainGAP / GAP)* 100;
+				
+				$("#ProgressT").text(progress.toFixed(2)+"%");
+				$("#progress").css("width",progress+"%");
+				
+				
+				var betWL = bet[1].split(":");
+				if(betWL[1] == "l"){
+					lostCount += 1;
+				}else winsCount += 1;
+			
+				
+				$("#botWins").text(winsCount)
+				$("#botLooses").text(lostCount)
+				$("#totalBets").text(betlog.length)
+							
+							
+				$("#BLS").text(bet[6].split(":")[1])
+				$("#CLS").text(bet[7].split(":")[1])
+				$("#cBalance").text(bet[3].split(":")[1])
+				$("#TB").text(bet[12].split(":")[1])
+				$("#hBalance").text(bet[5].split(":")[1].split("/")[0] )
+				$("#lBalance").text(bet[5].split(":")[1].split("/")[1] )
+				$("#BB").text(bet[10].split(":")[1])
+				$("#tBalance").text(bet[14].split(":")[1])
+				$("#ST").text(bet[16].split(":")[1].split("\n")[0])
+			*/
+			
+			updateChart(dataObject.ID, parseFloat(dataObject.C), dataObject.CLS);
+		
+	})
+
+
+},1000);
+</script>
+
+</body>
+
+</html>
