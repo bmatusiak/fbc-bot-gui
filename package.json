@@ -1,0 +1,10 @@
+{
+	"name":"fbc-bot",
+	"main": "index.html",
+	"show":true,
+  "window": {
+    "toolbar": true,
+	  "width": 1100,
+    "height": 425
+  }
+}
