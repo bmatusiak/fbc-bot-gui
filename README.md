@@ -1,7 +1,7 @@
 # fbc-bot-gui
 
 how to set this up.. 
-* om this example, the bot is already setup and configured
+* im this example, the bot is already setup and configured
 1. download "this" project https://github.com/bmatusiak/fbc-bot-gui/archive/master.zip
 2. download nwjs  @ https://nwjs.io/ (SDK version)
 * in this example folder for preconfigured bot folder will be referenced as (desktop/bitco-bot)
