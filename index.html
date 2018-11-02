@@ -52,6 +52,10 @@
 	<td id="lBalance"></td>
 </tr>
 <tr>
+	<td>Starting Balance</td>
+	<td id="sBalance"></td>
+</tr>
+<tr>
 	<td>Biggest Single Bet</td>
 	<td id="BB"></td>
 </tr>
@@ -232,6 +236,7 @@ setTimeout(function(){
 				$("#BLS").text(dataObject.BLS)
 				$("#CLS").text(dataObject.CLS)
 				$("#cBalance").text(dataObject.C)
+				$("#sBalance").text(dataObject.S)
 				$("#TB").text(dataObject.T)//totalBets
 				$("#hBalance").text(dataObject.HL.split("/")[0] )
 				$("#lBalance").text(dataObject.HL.split("/")[1] )
