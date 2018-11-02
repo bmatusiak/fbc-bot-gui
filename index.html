@@ -2,6 +2,8 @@
 <html lang="en">
 <script>
 
+var DEBUG = true;
+
 var botDir = "..\\..\\";
 var botExe = "freebitco.exe"
 
@@ -139,7 +141,7 @@ win.on('close', function() {
   this.hide(); // Pretend to be closed already
   console.log("We're closing...");
   for(var i in openProcesses){
-	openProcesses[i].process.kill('SIGINT');
+	openProcesses[i].process.kill('SIGKILL');
 	delete openProcesses[i];
   }
   //alert("close");
@@ -158,7 +160,7 @@ function startProcessBotProcess(args,outputAction,onExit){
 		return;
 	}
 	var spawn = require('child_process').spawn,
-		app = spawn(botDir + botExe, args,
+		app = spawn( botDir + botExe, args,
 				{ 	
 					cwd: botDir,
 					env: process.env
@@ -172,9 +174,16 @@ function startProcessBotProcess(args,outputAction,onExit){
 		for(var i in splitData){
 			try{
 				var $data = JSON.parse(splitData[i]);
-				if(typeof $data == "object")
+				if(typeof $data == "object"){
+					if($data.msg){
+						if($data.msg.split(":")[0] == "pid")
+							app.$pid = $data.msg.split(":")[1];
+					}
 					outputAction($data);
-			}catch(e){}
+				}else console.log($data);
+			}catch(e){
+				console.log($splitData[i]);
+			}
 		}
 	  }
 	});
@@ -184,8 +193,10 @@ function startProcessBotProcess(args,outputAction,onExit){
 	});
 
 	app.on('exit', function (code) {
-	  console.log('child process exited with code ' + code);
-	  if(onExit) onExit();
+		process.kill(app.$pid);
+		console.log('child process exited with code ' + code);
+	  
+		if(onExit) onExit();
 	});
 	openProcesses.push({
 		id : (new Date).getTime(),
@@ -283,9 +294,11 @@ var startStop = function(){
 			return;
 			
 		botProcess = startProcessBotProcess(args,function(dataObject){
+		if(DEBUG)
+			console.log(dataObject);
 		if(dataObject.msg) console.log(dataObject.msg);
 		
-		if(dataObject.msg && dataObject.msg.indexOf("Stopped") == 0){
+		if(dataObject.msg && (dataObject.msg.indexOf("Stopped") == 0 || dataObject.msg.indexOf("stoploss_bet_percent")  == 0 )){
 			 var thePrompt = confirm(dataObject.msg);
 			 
 			 if(thePrompt){
@@ -334,7 +347,7 @@ var startStop = function(){
 		
 	})
 	}else{
-		botProcess.kill('SIGINT');
+		botProcess.kill('SIGKILL');
 		running = false;
 		$("#startStop").text("Start")
 	}
