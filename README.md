@@ -1,14 +1,14 @@
 # fbc-bot-gui
 
-
-1. how to set this up.. first download "this" https://github.com/bmatusiak/fbc-bot-gui/archive/master.zip
-2. 2nd download nwjs  @ https://nwjs.io/
-3. extract nwjs somewhere  (desktop/nwjs)
-3. extract "this" in the nwjs folder inside its own folder (desktop/nwjs/fbc-bot-gui)
-4. edit index.html file in this folder (desktop/nwjs/fbc-bot-gui/index.html)
-*  edit the top where the bot folder is, that contains the bot.exe
-
+how to set this up.. 
+1. download "this" project https://github.com/bmatusiak/fbc-bot-gui/archive/master.zip
+2. download nwjs  @ https://nwjs.io/ (SDK version)
+* make a new folder on desktop (desktop/bitco-bot)
+3. extract nwjs to new folder  (desktop/bitco-bot/nwjs)
+3. extract "this" in the nwjs folder inside its own folder (desktop/bitco-bot/nwjs/fbc-bot-gui-master)
+4. copy (desktop/bitco-bot/nwjs/fbc-bot-gui-master/start.bat) to (desktop/bitco-bot/start.bat)
+5. now extract the bot to (desktop/bitco-bot/freebitcoin-bot) https://freebitcobot.dynu.net/freebitco_bot.zip
+6. edit your freebitcoin-bot's config file settings
 
 to run it
-* drag the bot folder (desktop/nwjs/fbc-bot-gui) to "nw" or "nw.exe" when viewing inside the nwjs folder (desktop/nwjs)
-
+start `start.bat`
