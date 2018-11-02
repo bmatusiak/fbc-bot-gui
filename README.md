@@ -12,3 +12,12 @@ how to set this up..
 
 to run it
 start `start.bat`
+
+
+```
+use this at your own risk
+
+i am not the bot developer
+
+donation to the GUI developer    bitcoin: 3CnnJ2Bnk1URS2LGodm8urtefrmVPTfSy4
+```
