@@ -2,11 +2,11 @@
 <html lang="en">
 <script>
 
-var DEBUG = false;// send more info to dev console
+var DEBUG = true;// send more info to dev console
 
 //for chart
-var updateInterval = 250; 
-var dataLength = 1000 * 30 ; // number of dataPoints visible at any point
+var updateInterval = 500; 
+var dataLength = 1000 * 5 ; // number of dataPoints visible at any point
 
 
 </script>
@@ -188,20 +188,27 @@ function startProcessBotProcess(args,outputAction,onExit){
 				var $data = JSON.parse(splitData[i]);
 				if(typeof $data == "object"){
 					if($data.msg){
+						if($data.msg.split(":")[0] == "e") alert($data.msg.split(":")[1]);
+						
 						if($data.msg.split(":")[0] == "pid")
 							app.$pid = $data.msg.split(":")[1];
+						
+						if($data.msg.indexOf("Captcha file") > -1){
+							var captchaWin = window.open("about:_blank",null,"height=160,width=300,top="+(window.screenY+40)+",left="+(window.screenX+30));
+							captchaWin.doSublit = function(data){
+								app.stdin.write(data+"\n");
+								setTimeout(function(){
+									captchaWin.close();
+								},100);
+							}
+							captchaWin.document.getElementsByTagName("body")[0].innerHTML = "<img src='file://"+$data.msg.split("Captcha file:")[1].replace(/\\/g,"\\\\").trim()+"'><br/>Enter Captcha:<input id='captcha'><br/><button onclick='javascript:window.doSublit(document.getElementById(\"captcha\").value)'>submit</button>";
+							return;
+						}
 					}
 					outputAction($data);
 				}else console.log($data);
 			}catch(e){
-				if(splitData[i].indexOf("Captcha file") > -1){
-					var captchaWin = window.open("about:_blank",null,"height=160,width=300,top="+(window.screenY+40)+",left="+(window.screenX+30));
-					captchaWin.doSublit = function(data){
-						app.stdin.write(data+"\n");
-						captchaWin.close();
-					}
-					captchaWin.document.getElementsByTagName("body")[0].innerHTML = "<img src='file://"+splitData[i].split("| Captcha file:")[1].replace(/\\/g,"\\\\").trim()+"'><br/>Enter Captcha:<input id='captcha'><br/><button onclick='javascript:window.doSublit(document.getElementById(\"captcha\").value)'>submit</button>"
-				}
+				
 				if(DEBUG){
 					console.log(e,splitData[i]);
 				}
