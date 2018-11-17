@@ -2,22 +2,18 @@
 <html lang="en">
 <script>
 
-var DEBUG = true;
-
-var botDir = "..\\..\\";
-var botExe = "freebitco.exe"
-
+var DEBUG = true;// send more info to dev console
 
 //for chart
-var updateInterval = 60; 
-var dataLength = 1000 * 30 ; // number of dataPoints visible at any point
+var updateInterval = 500; 
+var dataLength = 1000 * 5 ; // number of dataPoints visible at any point
 
 
 </script>
 <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
 <script src="https://canvasjs.com/assets/script/canvasjs.min.js"></script>
 
-<body>
+<body style="overflow:hidden;">
 
 <table>
 
@@ -78,6 +74,10 @@ var dataLength = 1000 * 30 ; // number of dataPoints visible at any point
 	<td id="B"></td>
 </tr>
 <tr>
+	<td>Current Draw Down</td>
+	<td id="CDD"></td>
+</tr>
+<tr>
 	<td>Biggest Draw Down</td>
 	<td id="BDD"></td>
 </tr>
@@ -101,37 +101,49 @@ var dataLength = 1000 * 30 ; // number of dataPoints visible at any point
 	<td>Progress</td>
 	<td id="ProgressT"></td>
 </tr>
+<tr>
+	<td>Progress Over Time</td>
+	<td id="progressOverTime"></td>
+</tr>
 </table>
 
 </td>
 
 
 <td  style="width:100%">
-
+<div>Free Roll:<input id ="freeRollCountdownON" type="checkbox" /><span id="freeRollCountdown"></span> | Rewards Check:<input id ="rewardsCountdownON" type="checkbox" /><span id="rewardsCountdown"></span></div>
 <div id="chartContainer" style="height: 400px; width:100%;"></div>
 
 </td>
 </tr>
 </table>
 
-<div id="progressBar" style="height:25px;width:100%;background-color:gray;"><div id="progress" style="height:25px;width:0%;background-color:green;"></div></div>
+<div id="progressBar" style="height:30px;width:100%;background-color:gray;">
+<div id="progress" style="height:15px;width:0%;background-color:green;"></div>
+<div id="progressOverTimeB" style="height:15px;width:0%;background-color:green;"></div>
+</div>
 
 <div>
 
 <button id="startStop">Start</button> | 
-<input id ="testMode" type="checkbox" checked="checked" />TestMode | 
 <button id="clearChart">Clear</button> | 
+<input id ="testMode" type="checkbox" checked="checked" />TestMode
+<br/>
+<br/>
+<button id="showDevConsole">DevConsole</button> | <br/>
+Test Balance <input type="input" placeholder='0.00000000' id="testBalance"> | 
+Lost Test Balance <input type="input" placeholder='0.00000000' id="lostTestBalance"></div>
 
-<br/>
-<br/>
-<button id="showDevConsole">DevConsole</button> | 
-</div>
+
+<div id="testOutPut" ></div>
 <script>
-
+/* globals $ nw CanvasJS dataLength updateInterval */
 var modules = {};
 modules.path = require("path");
 modules.fs = require('fs');
 
+var botDir = "..\\..\\";
+var botExe = "freebitco.exe";
 botDir = modules.path.join(global.__dirname,botDir);
 
 // Get the current window
@@ -149,7 +161,7 @@ win.on('close', function() {
 });
 
 $("#showDevConsole").click(function(){
-	win.showDevTools()
+	win.showDevTools();
 });
 
 function startProcessBotProcess(args,outputAction,onExit){
@@ -182,7 +194,9 @@ function startProcessBotProcess(args,outputAction,onExit){
 					outputAction($data);
 				}else console.log($data);
 			}catch(e){
-				console.log($splitData[i]);
+				/*if(DEBUG){
+					console.log(e,splitData[i]);
+				}*/
 			}
 		}
 	  }
@@ -206,12 +220,12 @@ function startProcessBotProcess(args,outputAction,onExit){
 	return app;
 }
 
-
+var dpsST = [];
 var dpsBALANCE_TIME = []; // dataPoints
 var dpsLOOSING = []; // dataPoints
 
 var chart = new CanvasJS.Chart("chartContainer", {
-	animationEnabled: true,
+	animationEnabled: true,zoomEnabled: true,
 	axisY: {
 		includeZero: false
 	}, 
@@ -222,36 +236,56 @@ var chart = new CanvasJS.Chart("chartContainer", {
 		}
 	},
 	axisX2: {
-		includeZero: false,
+		//includeZero: false,
 		labelFormatter: function(){
 		  return " ";
 		}
 	},
+	legend: {
+		itemclick: function(e){
+		  alert( "Legend item clicked with type : " + e.dataSeries.type);
+		}
+	},
 	data: [{
+		toolTipContent: "<b>{label}</b>: {y}<br/><b>Current Bet</b>: {B}<br/><b>Multiplier</b>: {M}<br/><b>Draw Down</b>: {CDD}",
+		showInLegend: "true",
+		legendText: "{label}",
 		type: "line",
 		color:"red",
 		axisXType: "secondary", 
 		axisYType: "secondary", 
 		dataPoints: dpsLOOSING
 	},{
+		toolTipContent: "<b>{label}</b>: {y}",
+		showInLegend: "true",
+		legendText: "{label}",
 		type: "line",
 		color:"blue",
-		dataPoints: dpsBALANCE_TIME
+		dataPoints: dpsBALANCE_TIME,
+		
+	},{
+		legendText: "{label}",
+		type: "line",
+		color:"black",
+		dataPoints: dpsST
 	}]
 });
 
-var xVal = 0;
-var yVal = 0; 
-var updateChart = function (x , y, Y2) {
+var updateChart = function (x , y, Y2,data) {
 
 	dpsBALANCE_TIME.push({
 		x: x,
 		y: y
+		,label: "Current Balance"
 	});
 	
 	dpsLOOSING.push({
 		x: x,
 		y: Y2
+		,M:data.M
+		,CDD:data.CDD
+		,B:data.B
+		,label: "Current Losing Streak"
 	});
 	
 
@@ -261,7 +295,22 @@ var updateChart = function (x , y, Y2) {
 	if (dpsLOOSING.length > dataLength) {
 		dpsLOOSING.shift();
 	}
-
+	
+	while(dpsST.length) {
+		dpsST.shift();
+	}
+	
+	
+	dpsST.push({
+		x: dpsBALANCE_TIME[0].x,
+		y: parseFloat(data.S)
+		,label: "Starting Balance"
+	});
+	dpsST.push({
+		x: x,
+		y: parseFloat(data.HL.split("/")[0])
+		,label: "Highest Balance"
+	});
 	//chart.render();
 };
 
@@ -272,88 +321,224 @@ $("#clearChart").click(function(){
 	while (dpsLOOSING.length) {
 		dpsLOOSING.shift();
 	}
+	while (dpsST.length) {
+		dpsST.shift();
+	}
 });
 //chartUpdater
-setInterval(function(){chart.render();}, updateInterval);
-
+setInterval(function(){
+	chart.render();
+}, updateInterval);
 var botProcess;
 var running = false;
+var starting = false;
 var fullsessioncount = 0;
 //start
 var startStop = function(){
 
-	if(!running){
-		running = true;
-		$("#startStop").text("Stop")
-		
+	if(!running && !starting){
+		var isTestMode = $('#testMode:checked').length;
 		var args = ["dice"];
-		if($('#testMode:checked').length)
+		if(isTestMode)
 			args.push("test");
 			
-		if(!confirm("starting bot: "+args.toString()))
+		if(!isTestMode && !confirm("starting bot: "+args.toString()))
 			return;
-			
+		
+		starting = true;		
+		$("#startStop").text("Starting");
 		botProcess = startProcessBotProcess(args,function(dataObject){
-		if(DEBUG)
-			console.log(dataObject);
-		if(dataObject.msg) console.log(dataObject.msg);
-		
-		if(dataObject.msg && (dataObject.msg.indexOf("Stopped") == 0 || dataObject.msg.indexOf("stoploss_bet_percent")  == 0 )){
-			 var thePrompt = confirm(dataObject.msg);
-			 
-			 if(thePrompt){
-				botProcess.stdin.write("\n");
-			 }
-			return;
-		}
+			
+			starting = false;
+			running = true;
+			$("#startStop").text("Stop");
+			
+			//if(DEBUG) console.log(dataObject);
+			if(dataObject.msg) 
+				console.log(dataObject.msg);
+			
+			if(dataObject.msg && ( dataObject.msg.indexOf("successful") >= 0 || dataObject.msg.indexOf("Stopped") == 0 || dataObject.msg.indexOf("stoploss_bet_percent")  == 0 )){
+				 var thePrompt = confirm(dataObject.msg);
+				 
+				 if(thePrompt){
+					botProcess.stdin.write("\n");
+				 }
+				return;
+			}
+			if(dataObject.msg && (dataObject.msg.indexOf("Success in") >= 0 || dataObject.msg.indexOf("stoploss_bet_percent")  == 0 )){
+				//bot has died/closed
+				running = false;
+				$("#startStop").text("Start");
+				return;
+			}
+			
+			$("#botWins").text(dataObject.W);
+			$("#botLooses").text(dataObject.L);
+			$("#totalBets").text(dataObject.ID);
+						
+						
+			$("#BLS").text(dataObject.BLS);
+			$("#CLS").text(dataObject.CLS);
+			$("#cBalance").text(dataObject.C);
+			$("#sBalance").text(dataObject.S);
+			$("#TB").text(dataObject.T);//totalBets
+			$("#hBalance").text(dataObject.HL.split("/")[0] );
+			$("#lBalance").text(dataObject.HL.split("/")[1] );
+			$("#BB").text(dataObject.BB);
+			$("#BDD").text(dataObject.BDD);
+			$("#CDD").text(dataObject.CDD);
+			$("#tBalance").text(dataObject.TB);//targetBalance
+			$("#ST").text(dataObject.ST);
+			$("#B").text(dataObject.B);
+			$("#M").text(dataObject.M);
+			
+			//sensure groath of char to max BLS
+			dataLength = parseFloat(dataObject.BLS) > dataLength ? parseFloat(dataObject.BLS) : dataLength;
+			
+			var targetBalance = parseFloat(dataObject.TB);
+			var highestBalance = parseFloat(dataObject.HL.split("/")[0]);
+			
+			var targetAmount = targetBalance - dataObject.S;
+			var gain = highestBalance - dataObject.S;
+			
+			$("#gain").text(gain.toFixed(8));
+			$("#targetAmount").text(targetAmount.toFixed(8));
+			
+			var progress = (gain / targetAmount)* 100;
+			
+			$("#ProgressT").text(progress.toFixed(4)+"%");
+			$("#progress").css("width",progress+"%");
+			
+			var progressOverTime = progress / parseFloat(dataObject.ST);
+			$("#progressOverTime").text(progressOverTime.toFixed(4)+"%");
+			$("#progressOverTimeB").css("width",progressOverTime+"%");
+			
+			++fullsessioncount;
+			updateChart(fullsessioncount, parseFloat(dataObject.C), dataObject.CLS,dataObject);
+						
+			if(isTestMode){
+				$("#testBalance").val(dataObject.C);
+				
+				$("#lostTestBalance").val(dataObject.CDD);
+			}
 
-		$("#botWins").text(dataObject.W)
-		$("#botLooses").text(dataObject.L)
-		$("#totalBets").text(dataObject.ID)
-					
-					
-		$("#BLS").text(dataObject.BLS)
-		$("#CLS").text(dataObject.CLS)
-		$("#cBalance").text(dataObject.C)
-		$("#sBalance").text(dataObject.S)
-		$("#TB").text(dataObject.T)//totalBets
-		$("#hBalance").text(dataObject.HL.split("/")[0] )
-		$("#lBalance").text(dataObject.HL.split("/")[1] )
-		$("#BB").text(dataObject.BB)
-		$("#BDD").text(dataObject.BDD)
-		$("#tBalance").text(dataObject.TB)//targetBalance
-		$("#ST").text(dataObject.ST)
-		$("#B").text(dataObject.B)
-		$("#M").text(dataObject.M)
-		
-		
-		
-		var targetBalance = parseFloat(dataObject.TB);
-		var highestBalance = parseFloat(dataObject.HL.split("/")[0]);
-		
-		var targetAmount = targetBalance - dataObject.S;
-		var gain = highestBalance - dataObject.S;
-		
-		$("#gain").text(gain.toFixed(8));
-		$("#targetAmount").text(targetAmount.toFixed(8));
-		
-		var progress = (gain / targetAmount)* 100;
-		
-		$("#ProgressT").text(progress.toFixed(2)+"%");
-		$("#progress").css("width",progress+"%");
-		
-		++fullsessioncount;
-		updateChart(fullsessioncount, parseFloat(dataObject.C), dataObject.CLS);
-		
-	})
+		},function(){
+			//bot has died/closed
+			running = false;
+			$("#startStop").text("Start");
+			if($("#auto-restartTestON:checked").length){
+				startStop();
+			}
+		});
 	}else{
-		botProcess.kill('SIGKILL');
-		running = false;
-		$("#startStop").text("Start")
+		if(running)
+			botProcess.kill('SIGKILL');
+		//running = false;
+		//$("#startStop").text("Start")
+		
 	}
 };
 
-$("#startStop").click(startStop);
+$("#startStop").click(function(){
+	if(running)
+		$("#auto-restartTestON:checked").prop('checked', false);
+		
+	startStop();
+});
+
+$(function(){
+// Set the date we're counting down to
+var FREEROLLcountDownDate = window.localStorage.FREEROLLcountDownDate || new Date().getTime();
+var runningNow = false;
+// Update the count down every 1 second
+var xFREEROLLcountDownDate = setInterval(function() {
+
+  // Get todays date and time
+  var now = new Date().getTime();
+
+  // Find the distance between now and the count down date
+  var distance = FREEROLLcountDownDate - now;
+
+  // Time calculations for days, hours, minutes and seconds
+  var days = Math.floor(distance / (1000 * 60 * 60 * 24));
+  var hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+  var minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+  var seconds = Math.floor((distance % (1000 * 60)) / 1000);
+
+  // Display the result in the element with id="demo"
+  $("#freeRollCountdown").text((days ? days + "d ":"") + (hours ? hours + "h ":"")
+  + (minutes ? minutes + "m ":"") + (seconds ? seconds + "s ":""));
+
+  // If the count down is finished, write some text 
+  if (distance < 0) {
+    //clearInterval(x);
+	if($("#freeRollCountdownON:checked").length && !runningNow){
+		//runProcess
+		runningNow = true;
+		FREEROLLcountDownDate = window.localStorage.FREEROLLcountDownDate = (new Date()).getTime() + (1000 * 60 * 60);
+		runningNow = false;
+	}
+    $("#freeRollCountdown").text("EXPIRED");
+  }
+}, 1000);
+});
+
+$(function(){
+
+// Set the date we're counting down to
+var REWARDScountDownDate = window.localStorage.REWARDScountDownDate || new Date().getTime();
+var runningNow = false;
+// Update the count down every 1 second
+var xREWARDScountDownDate = setInterval(function() {
+
+  // Get todays date and time
+  var now = new Date().getTime();
+
+  // Find the distance between now and the count down date
+  var distance = REWARDScountDownDate - now;
+
+  // Time calculations for days, hours, minutes and seconds
+  var days = Math.floor(distance / (1000 * 60 * 60 * 24));
+  var hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+  var minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+  var seconds = Math.floor((distance % (1000 * 60)) / 1000);
+
+  // Display the result in the element with id="demo"
+  $("#rewardsCountdown").text((days ? days + "d ":"") + (hours ? hours + "h ":"")
+  + (minutes ? minutes + "m ":"") + (seconds ? seconds + "s ":""));
+
+  // If the count down is finished, write some text 
+  if (distance < 0) {
+    //clearInterval(x);
+	if($("#rewardsCountdownON:checked").length && !runningNow){
+		//runProcess
+		runningNow = true;
+		REWARDScountDownDate = window.localStorage.REWARDScountDownDate = (new Date()).getTime() + (1000 * 60 * 60);
+		runningNow = false;
+	}
+    $("#rewardsCountdown").text("EXPIRED");
+  }
+}, 1000);
+});
+
+$("#testBalance").val(modules.fs.readFileSync(botDir+"Data\\tmp\\debug_balance.txt"));
+$("#testBalance").change(function(){
+	modules.fs.writeFileSync(botDir+"Data\\tmp\\debug_balance.txt",$("#testBalance").val());
+});
+
+try{
+	$("#lostTestBalance").val(modules.fs.readFileSync(botDir+"Data\\tmp\\debug_remember_lost_amount.txt"));
+}catch(e){
+	modules.fs.writeFileSync(botDir+"Data\\tmp\\debug_remember_lost_amount.txt",$("#lostTestBalance").val());
+	$("#lostTestBalance").val(modules.fs.readFileSync(botDir+"Data\\tmp\\debug_remember_lost_amount.txt"));
+}
+$("#lostTestBalance").change(function(){
+	modules.fs.writeFileSync(botDir+"Data\\tmp\\debug_remember_lost_amount.txt",$("#lostTestBalance").val());
+});
+
+$("input").keyup(function(){
+	$(this).change();
+});
 </script>
 
 </body>
