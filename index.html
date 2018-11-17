@@ -411,6 +411,7 @@ var startStop = function(){
 			
 			var progressOverTime = progress / parseFloat(dataObject.ST);
 			$("#progressOverTime").text(progressOverTime.toFixed(4)+"%");
+			if(progressOverTime > 100) progressOverTime = 100;
 			$("#progressOverTimeB").css("width",progressOverTime+"%");
 			
 			++fullsessioncount;
