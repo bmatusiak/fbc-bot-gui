@@ -207,7 +207,7 @@ function startProcessBotProcess(args,outputAction,onExit){
 	});
 
 	app.on('exit', function (code) {
-		process.kill(app.$pid);
+		try{process.kill(app.$pid);}catch(e){}
 		console.log('child process exited with code ' + code);
 	  
 		if(onExit) onExit();
@@ -475,8 +475,12 @@ var xFREEROLLcountDownDate = setInterval(function() {
 	if($("#freeRollCountdownON:checked").length && !runningNow){
 		//runProcess
 		runningNow = true;
-		FREEROLLcountDownDate = window.localStorage.FREEROLLcountDownDate = (new Date()).getTime() + (1000 * 60 * 60);
-		runningNow = false;
+		startProcessBotProcess(["freeroll"],function(data){
+			console.log("freeroll",data);
+		},function(){
+			FREEROLLcountDownDate = window.localStorage.FREEROLLcountDownDate = (new Date()).getTime() + (1000 * 60 * 60);
+			runningNow = false;
+		});
 	}
     $("#freeRollCountdown").text("EXPIRED");
   }
@@ -513,8 +517,12 @@ var xREWARDScountDownDate = setInterval(function() {
 	if($("#rewardsCountdownON:checked").length && !runningNow){
 		//runProcess
 		runningNow = true;
-		REWARDScountDownDate = window.localStorage.REWARDScountDownDate = (new Date()).getTime() + (1000 * 60 * 60);
-		runningNow = false;
+		startProcessBotProcess(["rewards"],function(data){
+		console.log("rewards",data);
+		},function(){
+			REWARDScountDownDate = window.localStorage.REWARDScountDownDate = (new Date()).getTime() + (1000 * 60 * 60);
+			runningNow = false;
+		});
 	}
     $("#rewardsCountdown").text("EXPIRED");
   }
