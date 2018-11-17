@@ -2,11 +2,11 @@
 <html lang="en">
 <script>
 
-var DEBUG = true;// send more info to dev console
+var DEBUG = false;// send more info to dev console
 
 //for chart
-var updateInterval = 500; 
-var dataLength = 1000 * 5 ; // number of dataPoints visible at any point
+var updateInterval = 250; 
+var dataLength = 1000 * 30 ; // number of dataPoints visible at any point
 
 
 </script>
@@ -194,9 +194,17 @@ function startProcessBotProcess(args,outputAction,onExit){
 					outputAction($data);
 				}else console.log($data);
 			}catch(e){
-				/*if(DEBUG){
+				if(splitData[i].indexOf("Captcha file") > -1){
+					var captchaWin = window.open("about:_blank",null,"height=160,width=300,top="+(window.screenY+40)+",left="+(window.screenX+30));
+					captchaWin.doSublit = function(data){
+						app.stdin.write(data+"\n");
+						captchaWin.close();
+					}
+					captchaWin.document.getElementsByTagName("body")[0].innerHTML = "<img src='file://"+splitData[i].split("| Captcha file:")[1].replace(/\\/g,"\\\\").trim()+"'><br/>Enter Captcha:<input id='captcha'><br/><button onclick='javascript:window.doSublit(document.getElementById(\"captcha\").value)'>submit</button>"
+				}
+				if(DEBUG){
 					console.log(e,splitData[i]);
-				}*/
+				}
 			}
 		}
 	  }
