@@ -188,7 +188,7 @@ function startProcessBotProcess(args,outputAction,onExit){
 				var $data = JSON.parse(splitData[i]);
 				if(typeof $data == "object"){
 					if($data.msg){
-						if($data.msg.split(":")[0] == "e") alert($data.msg.split(":")[1]);
+						if($data.msg.split(":")[0] == "e" && $data.msg.split(":")[1].indexOf('You can only have one bonus') == -1) alert($data.msg.split(":")[1]);
 						
 						if($data.msg.split(":")[0] == "pid")
 							app.$pid = $data.msg.split(":")[1];
